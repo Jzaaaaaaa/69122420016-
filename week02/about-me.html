@@ -1,0 +1,1289 @@
+<!DOCTYPE html>
+<html lang="th" class="no-js">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Me</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <script>
+        // เปิดโหมดอนิเมชันเฉพาะเมื่อ JavaScript ทำงานและผู้ใช้ไม่ได้ขอลดการเคลื่อนไหว
+        if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+            document.documentElement.className = "js";
+        }
+    </script>
+    <style>
+        :root {
+            --bg: #03040b;
+            --text: #e6ecff;
+            --muted: #8f99bf;
+            --accent: #7fd6ff;
+            --accent2: #c39bff;
+            --line: rgba(160, 190, 255, 0.18);
+            --mono: "JetBrains Mono", ui-monospace, monospace;
+            --ease: cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        * { box-sizing: border-box; }
+        html { scrollbar-color: #3a4270 var(--bg); }
+        body {
+            margin: 0;
+            font-family: "IBM Plex Sans Thai", sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.7;
+            overflow-x: hidden;
+        }
+        html.lenis, html.lenis body { height: auto; }
+        .lenis.lenis-smooth { scroll-behavior: auto !important; }
+        ::selection { background: var(--accent2); color: var(--bg); }
+        :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+        /* ---------- ชั้นพื้นหลัง: ฉาก 3D + ตัวอักษร ASCII ---------- */
+        #scene, #ascii {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        #scene { z-index: 0; }
+        #ascii { z-index: 1; }
+
+        /* ---------- แถบสถานะมุมจอ ---------- */
+        .hud {
+            position: fixed;
+            z-index: 5;
+            font-family: var(--mono);
+            font-size: 0.72rem;
+            letter-spacing: 0.02em;
+            color: var(--muted);
+            font-variant-numeric: tabular-nums;
+        }
+        .hud-status { top: 16px; right: 16px; border: 1px solid var(--line); padding: 4px 10px; background: rgba(3, 4, 11, 0.6); }
+        .hud-status i {
+            display: inline-block;
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: #4dff9a;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        .hud-distance { bottom: 16px; left: 16px; }
+        .hud-distance b { color: var(--accent); font-weight: 600; }
+        .hud-bar {
+            position: fixed;
+            z-index: 5;
+            top: 0; right: 0;
+            width: 2px; height: 100vh;
+            background: var(--accent);
+            transform-origin: top;
+            transform: scaleY(var(--gp, 0));
+            opacity: 0.6;
+        }
+
+        /* ---------- โครงแต่ละช่วง (chapter) ---------- */
+        main { position: relative; z-index: 2; }
+        .chapter { position: relative; }
+        .stage {
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            padding: 64px 16px;
+        }
+        /* โหมดอนิเมชัน: ช่วงยาวขึ้น แล้วตรึงฉากไว้ระหว่างเลื่อน */
+        .js .chapter { height: var(--len, 250vh); }
+        .js .stage {
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            min-height: 0;
+            overflow: hidden;
+        }
+        .inner { width: 100%; max-width: 720px; }
+
+        h2 {
+            margin: 0 0 24px;
+            font-size: clamp(1.6rem, 4.5vw, 2.6rem);
+            font-weight: 600;
+            line-height: 1.25;
+            color: var(--accent);
+        }
+        .js h2 { clip-path: inset(0 calc((1 - var(--h, 0)) * 100%) 0 0); }
+
+        /* ---------- 1) Hero ---------- */
+        .hero .inner {
+            max-width: 1100px;
+            text-align: center;
+            perspective: 900px;
+        }
+        .hero-body {
+            transform-style: preserve-3d;
+            transition: transform 0.4s var(--ease);
+        }
+        .js .hero-body {
+            opacity: calc(1 - var(--p, 0) * 1.6);
+            filter: blur(calc(var(--p, 0) * 12px));
+            translate: 0 calc(var(--p, 0) * -80px);
+        }
+        .coin {
+            position: relative;
+            width: 150px;
+            height: 150px;
+            margin: 0 auto 28px;
+            transform-style: preserve-3d;
+            transform: perspective(600px) rotateY(calc(var(--p, 0) * 540deg));
+        }
+        .coin img, .coin .back {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            backface-visibility: hidden;
+            object-fit: cover;
+            border: 2px solid var(--accent);
+            box-shadow: 0 18px 40px -14px rgba(0, 0, 0, 0.8);
+        }
+        .coin .back {
+            transform: rotateY(180deg);
+            background: radial-gradient(circle at 35% 30%, #6b4bb8, #2a1a55);
+            border-color: var(--accent2);
+            color: #f1e8ff;
+            display: grid;
+            place-items: center;
+            font-family: var(--mono);
+            font-weight: 600;
+        }
+        h1 {
+            margin: 0;
+            font-size: clamp(2.6rem, 9vw, 5.5rem);
+            font-weight: 600;
+            line-height: 1.1;
+            letter-spacing: -0.02em;
+            text-wrap: balance;
+        }
+        .hero-id {
+            margin: 14px 0 0;
+            font-family: var(--mono);
+            color: var(--accent);
+            letter-spacing: 0.03em;
+        }
+        .hint {
+            position: absolute;
+            bottom: 32px;
+            left: 50%;
+            translate: -50% 0;
+            font-size: 0.85rem;
+            color: var(--muted);
+            display: grid;
+            justify-items: center;
+            gap: 8px;
+        }
+        .hint::after {
+            content: "";
+            width: 1px;
+            height: 40px;
+            background: linear-gradient(var(--accent), transparent);
+            animation: drop 1.8s var(--ease) infinite;
+            transform-origin: top;
+        }
+        @keyframes drop {
+            0% { transform: scaleY(0); }
+            60% { transform: scaleY(1); opacity: 1; }
+            100% { transform: scaleY(1); opacity: 0; }
+        }
+        .js .hint { opacity: calc(1 - var(--p, 0) * 5); }
+        .no-js .hint { display: none; }
+
+        /* กลุ่มดาวที่ซ่อนอยู่: เผยเฉพาะในวงไฟฉายรอบเมาส์ (spotlight mask) */
+        .stage { position: relative; }
+        .js .stage { position: sticky; }
+        .constellation {
+            position: absolute;
+            left: 50%; top: 50%;
+            width: min(78vw, 560px);
+            translate: -50% -50%;
+            pointer-events: none;
+            opacity: 0.2;
+        }
+        .c-lines polyline { fill: none; stroke: var(--accent); stroke-width: 1; stroke-dasharray: 3 5; }
+        .c-stars circle { fill: #f4f7ff; }
+        .c-labels text { fill: var(--accent2); font-family: var(--mono); font-size: 12px; }
+        @media (hover: none) { .c-labels { display: none; } } /* จอสัมผัสไม่มีไฟฉาย ป้ายจะจางจนอ่านไม่ออก */
+        @media (hover: hover) {
+            .js .constellation {
+                opacity: 1;
+                -webkit-mask-image: radial-gradient(circle 170px at var(--mx, -999px) var(--my, -999px), #000 35%, transparent 75%);
+                mask-image: radial-gradient(circle 170px at var(--mx, -999px) var(--my, -999px), #000 35%, transparent 75%);
+            }
+        }
+        .js .hero .constellation { filter: blur(calc(var(--p, 0) * 6px)); }
+
+        /* ---------- 2) รหัสนักศึกษาแบบ dot-matrix ---------- */
+        .idmatrix-wrap { position: relative; width: 100%; height: min(46vh, 340px); }
+        #idmatrix { width: 100%; height: 100%; display: block; }
+        .id-plain {
+            font-family: var(--mono);
+            font-size: clamp(2rem, 9vw, 5rem);
+            letter-spacing: 0.06em;
+            color: var(--accent);
+            margin: 0;
+            text-align: center;
+        }
+        .readout {
+            margin-top: 16px;
+            font-family: var(--mono);
+            font-size: 0.8rem;
+            color: var(--muted);
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            font-variant-numeric: tabular-nums;
+        }
+        .readout b { color: var(--accent); font-weight: 600; }
+        .js .id-plain {
+            position: absolute;
+            width: 1px; height: 1px;
+            overflow: hidden;
+            clip: rect(0 0 0 0);
+        }
+        .no-js .idmatrix-wrap, .no-js .readout { display: none; }
+
+        /* ---------- 3) แนะนำตัว: คำค่อย ๆ ชัดตามการเลื่อน ---------- */
+        .about p {
+            margin: 0;
+            font-size: clamp(1.25rem, 3.4vw, 2rem);
+            font-weight: 300;
+            line-height: 1.6;
+            max-width: 32ch;
+        }
+        .js .w {
+            opacity: calc(0.14 + var(--v, 0) * 0.86);
+            filter: blur(calc((1 - var(--v, 0)) * 6px));
+        }
+        .about strong { font-weight: 600; color: var(--accent2); }
+
+        /* ---------- 4) ข้อมูลทั่วไป: แต่ละแถววิ่งเข้ามา ---------- */
+        dl { margin: 0; }
+        .row {
+            position: relative;
+            display: grid;
+            grid-template-columns: minmax(110px, 30%) 1fr;
+            gap: 16px;
+            padding: 16px 0;
+            font-size: clamp(1rem, 2.4vw, 1.2rem);
+        }
+        .row::after {
+            content: "";
+            position: absolute;
+            left: 0; right: 0; bottom: 0;
+            height: 1px;
+            background: var(--line);
+            transform-origin: left;
+            transform: scaleX(var(--v, 1));
+        }
+        .js .row > * {
+            opacity: var(--v, 0);
+            translate: calc((1 - var(--v, 0)) * 48px) 0;
+        }
+        dt { color: var(--muted); }
+        dd { margin: 0; }
+
+        /* ---------- 5) สิ่งที่สนใจ: ลอยเข้ามาจากระยะไกล ---------- */
+        .interests ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 20px; }
+        .interests li {
+            font-size: clamp(1.15rem, 3.2vw, 1.7rem);
+            padding-left: 28px;
+            position: relative;
+        }
+        .interests li::before {
+            content: "";
+            position: absolute;
+            left: 0; top: 0.75em;
+            width: 12px; height: 1px;
+            background: var(--accent2);
+        }
+        .js .interests li {
+            opacity: var(--v, 0);
+            transform: scale(calc(0.7 + var(--v, 0) * 0.3)) translateY(calc((1 - var(--v, 0)) * 60px));
+            filter: blur(calc((1 - var(--v, 0)) * 10px));
+            transform-origin: left center;
+        }
+
+        /* ---------- บัตรนักศึกษาโฮโลแกรม ---------- */
+        .holo { perspective: 1100px; }
+        .holo-card {
+            position: relative;
+            overflow: hidden;
+            border-radius: 18px;
+            padding: 24px 28px 12px;
+            background: linear-gradient(150deg, #101634 0%, #0a0d22 55%, #141032 100%);
+            border: 1px solid rgba(195, 175, 255, 0.28);
+            transform-style: preserve-3d;
+            /* --flip มาจากการเลื่อน (บัตรพลิกเข้ามา), --rx/--ry มาจากเมาส์ */
+            transform: rotateY(calc(var(--flip, 0) * -100deg + var(--ry, 0) * 1deg)) rotateX(calc(var(--rx, 0) * 1deg));
+            box-shadow:
+                calc(var(--ry, 0) * -0.8px) calc(26px + var(--rx, 0) * 0.8px) 50px -18px rgba(0, 0, 0, 0.9);
+        }
+        .holo-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: var(--mono);
+            font-size: 0.72rem;
+            color: var(--muted);
+        }
+        .holo-chip {
+            width: 38px; height: 28px;
+            border-radius: 5px;
+            background: linear-gradient(135deg, #d9c38a, #8f7a45 60%, #e8d9a8);
+        }
+        .holo-name {
+            margin: 14px 0 4px;
+            font-size: clamp(1.5rem, 4vw, 2.1rem);
+            font-weight: 600;
+            letter-spacing: -0.01em;
+        }
+        .holo-card .row { padding: 10px 0; font-size: clamp(0.95rem, 2.2vw, 1.05rem); }
+        .holo-card .row:last-child::after { display: none; }
+        /* ฟอยล์สีรุ้ง: สีเลื่อนตามมุมที่แสงตก */
+        .holo-foil, .holo-glare {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+        }
+        .holo-foil {
+            background: linear-gradient(115deg,
+                transparent 20%, #ff7ad9 32%, #7fd6ff 42%, #8dffb0 52%, #fff07a 62%, transparent 75%);
+            background-size: 250% 250%;
+            background-position: calc(50% + var(--ry, 0) * 4%) calc(50% + var(--rx, 0) * 4%);
+            mix-blend-mode: color-dodge;
+            opacity: 0.22;
+        }
+        .holo-glare {
+            background: radial-gradient(circle at var(--gx, 50%) var(--gy, 30%), rgba(255, 255, 255, 0.22), transparent 45%);
+            mix-blend-mode: overlay;
+        }
+
+        /* ---------- ทรงกลมแท็ก ---------- */
+        .interests-grid { display: grid; grid-template-columns: 1fr minmax(260px, 340px); gap: 32px; align-items: center; max-width: 960px; }
+        .sphere {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1;
+            cursor: grab;
+            touch-action: pan-y;
+            user-select: none;
+        }
+        .sphere:active { cursor: grabbing; }
+        .sphere span {
+            position: absolute;
+            left: 50%; top: 50%;
+            white-space: nowrap;
+            font-family: var(--mono);
+            font-size: 0.85rem;
+            color: var(--text);
+            padding: 3px 10px;
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            background: rgba(10, 14, 34, 0.75);
+            will-change: transform, opacity;
+        }
+        .no-js .sphere { display: none; }
+
+        /* ---------- 6) ปลายทาง: หลุมดำ ---------- */
+        #blackhole {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0;
+        }
+        .finale .stage { align-items: end; }
+        .finale-text { text-align: center; padding-bottom: 6vh; text-shadow: 0 2px 14px rgba(0, 0, 0, 0.95); }
+        .finale-text h2 { color: var(--text); }
+        .finale-text p { margin: 0; color: var(--muted); }
+        .finale-text .end { font-size: clamp(1.1rem, 3vw, 1.5rem); color: var(--text); margin-bottom: 8px; }
+        .finale-text small { font-family: var(--mono); font-size: 0.75rem; }
+        .js .finale-text p { opacity: var(--v, 0); }
+
+        @media (max-width: 760px) {
+            .interests-grid { grid-template-columns: 1fr; gap: 8px; }
+            .sphere { width: min(100%, 280px); margin: 0 auto; }
+            .interests ul { gap: 10px; }
+        }
+        @media (max-width: 480px) {
+            .row { grid-template-columns: 1fr; gap: 2px; }
+            .hud-distance { font-size: 0.65rem; }
+            .holo-card { padding: 18px 18px 8px; }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="scene" aria-hidden="true"></canvas>
+    <canvas id="ascii" aria-hidden="true"></canvas>
+
+    <div class="hud hud-status" aria-hidden="true"><i></i><span id="where">1 / 5 · เริ่มต้น</span></div>
+    <div class="hud hud-distance" aria-hidden="true">กำลังผ่าน <b id="dist">โลก</b></div>
+    <div class="hud-bar" aria-hidden="true"></div>
+
+    <main>
+        <!-- 1) Hero -->
+        <section class="chapter hero" style="--len: 200vh" data-ch="hero">
+            <div class="stage" id="heroStage">
+                <!-- กลุ่มดาวรูปตัว J ซ่อนอยู่ เห็นเฉพาะตรงที่ไฟฉายเมาส์ส่อง -->
+                <svg class="constellation" viewBox="0 0 400 500" aria-hidden="true">
+                    <g class="c-lines">
+                        <polyline points="70,70 200,52 330,78" />
+                        <polyline points="200,52 208,190 214,320 186,418 108,436 58,372" />
+                        <polyline points="330,78 360,150" />
+                    </g>
+                    <g class="c-stars">
+                        <circle cx="70" cy="70" r="3" /><circle cx="200" cy="52" r="6" /><circle cx="330" cy="78" r="4" />
+                        <circle cx="360" cy="150" r="2.5" /><circle cx="208" cy="190" r="3.5" /><circle cx="214" cy="320" r="5" />
+                        <circle cx="186" cy="418" r="3" /><circle cx="108" cy="436" r="4" /><circle cx="58" cy="372" r="3" />
+                    </g>
+                    <g class="c-labels">
+                        <text x="214" y="44">α Jay</text>
+                        <text x="226" y="324">β 6912</text>
+                        <text x="20" y="470">กลุ่มดาวเจ · 2420016</text>
+                    </g>
+                </svg>
+                <div class="inner">
+                    <div class="hero-body" id="heroBody">
+                        <div class="coin">
+                            <!-- วางรูปตัวเองชื่อ me.jpg ไว้โฟลเดอร์เดียวกับไฟล์นี้ -->
+                            <img src="me.jpg" alt="รูปของฉัน"
+                                 onerror="this.onerror=null;this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23262b46%22/><circle cx=%2250%22 cy=%2238%22 r=%2218%22 fill=%22%238f99bf%22/><rect x=%2222%22 y=%2262%22 width=%2256%22 height=%2230%22 rx=%2215%22 fill=%22%238f99bf%22/></svg>'">
+                            <div class="back">SCS211</div>
+                        </div>
+                        <h1 class="scramble">Phubet Janphong</h1>
+                        <p class="hero-id scramble">Jay · นักศึกษา SCS211</p>
+                    </div>
+                </div>
+                <div class="hint">เลื่อนลงเพื่อเดินทาง</div>
+            </div>
+        </section>
+
+        <!-- 2) รหัสนักศึกษา -->
+        <section class="chapter idch" style="--len: 300vh" data-ch="id">
+            <div class="stage">
+                <div class="inner">
+                    <h2>รหัสนักศึกษา</h2>
+                    <p class="id-plain">69122420016</p>
+                    <div class="idmatrix-wrap"><canvas id="idmatrix" aria-hidden="true"></canvas></div>
+                    <div class="readout" aria-hidden="true">
+                        <span>ถอดรหัสแล้ว <b id="decoded">0</b> / 11 หลัก</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3) แนะนำตัว -->
+        <section class="chapter about" style="--len: 260vh" data-ch="about">
+            <div class="stage">
+                <div class="inner">
+                    <h2>แนะนำตัว</h2>
+                    <p class="words">
+                        สวัสดีครับ ผมชื่อ Phubet Janphong ชื่อเล่น <strong>Jay</strong> เป็นนักศึกษาที่กำลังเรียนวิชา SCS211
+                        ชอบเขียนโปรแกรม ทำเว็บ และทำเกมเล็ก ๆ เป็นงานอดิเรก
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4) ข้อมูลทั่วไป -->
+        <section class="chapter info" style="--len: 240vh" data-ch="info">
+            <div class="stage">
+                <div class="inner">
+                    <h2>ข้อมูลทั่วไป</h2>
+                    <!-- บัตรนักศึกษาโฮโลแกรม: พลิกเข้ามาตามการเลื่อน แล้วเอียงตามเมาส์ -->
+                    <div class="holo" id="holo">
+                        <div class="holo-card">
+                            <div class="holo-top">
+                                <span>STUDENT ID · SCS211</span>
+                                <span class="holo-chip" aria-hidden="true"></span>
+                            </div>
+                            <p class="holo-name">Phubet Janphong</p>
+                            <dl>
+                                <div class="row"><dt>ชื่อ-นามสกุล</dt><dd>Phubet Janphong</dd></div>
+                                <div class="row"><dt>ชื่อเล่น</dt><dd>Jay</dd></div>
+                                <div class="row"><dt>รหัสนักศึกษา</dt><dd>69122420016</dd></div>
+                                <div class="row"><dt>วิชา</dt><dd>SCS211</dd></div>
+                                <div class="row"><dt>งานอดิเรก</dt><dd>เขียนโค้ด, ทำเกม, ศึกษาการลงทุน</dd></div>
+                            </dl>
+                            <div class="holo-foil" aria-hidden="true"></div>
+                            <div class="holo-glare" aria-hidden="true"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5) สิ่งที่สนใจ -->
+        <section class="chapter interests" style="--len: 240vh" data-ch="interests">
+            <div class="stage">
+                <div class="inner interests-grid">
+                    <div>
+                        <h2>สิ่งที่สนใจ</h2>
+                        <ul>
+                            <li>การพัฒนาเว็บด้วย HTML, CSS และ JavaScript</li>
+                            <li>การทำเกมบนเบราว์เซอร์</li>
+                            <li>การเขียนโปรแกรมอัตโนมัติ</li>
+                            <li>ภาพเคลื่อนไหวและกราฟิก 3D บนเว็บ</li>
+                        </ul>
+                    </div>
+                    <!-- ทรงกลมแท็ก: ลากเพื่อหมุนได้ ปล่อยแล้วหมุนต่อด้วยแรงเฉื่อย -->
+                    <div class="sphere" id="sphere" aria-hidden="true"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 6) ปลายทาง: หลุมดำ -->
+        <section class="chapter finale" style="--len: 220vh" data-ch="finale">
+            <div class="stage">
+                <div class="inner finale-text">
+                    <h2>ถึงปลายทางแล้ว</h2>
+                    <p class="end">ขอบคุณที่แวะมาครับ</p>
+                    <p><small>Phubet Janphong · 69122420016 · SCS211 week02</small></p>
+                </div>
+            </div>
+        </section>
+    </main>
+    <canvas id="blackhole" aria-hidden="true"></canvas>
+
+    <!-- three.js สร้างฉากอวกาศ 3D -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Lenis ทำให้การเลื่อนหน้านุ่มมีแรงเฉื่อย -->
+    <script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>
+    <script>
+    (function () {
+        const animated = document.documentElement.classList.contains("js");
+        const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+
+        // ---------- ตำแหน่งเมาส์ (ใช้ร่วมกันทุกเอฟเฟกต์) ----------
+        const mouse = { x: innerWidth / 2, y: innerHeight / 2, nx: 0, ny: 0, active: false };
+        addEventListener("pointermove", (e) => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+            mouse.nx = e.clientX / innerWidth - 0.5;
+            mouse.ny = e.clientY / innerHeight - 0.5;
+            mouse.active = true;
+        });
+        document.addEventListener("pointerleave", () => (mouse.active = false));
+
+        // แบ่งข้อความแบบไม่ทำให้สระ/วรรณยุกต์ไทยหลุด
+        function split(text, granularity) {
+            if (window.Intl && Intl.Segmenter) {
+                return [...new Intl.Segmenter("th", { granularity }).segment(text)].map((s) => s.segment);
+            }
+            return granularity === "word" ? text.split(/(\s+)/) : Array.from(text);
+        }
+
+        if (!animated) return; // โหมดลดการเคลื่อนไหว: แสดงเนื้อหาทั้งหมดแบบนิ่ง
+
+        // ---------- Text scramble ตอนเปิดหน้า ----------
+        const glyphs = "01<>/[]{}#*+=-_ABCDEFXYZ";
+        document.querySelectorAll(".scramble").forEach((el, n) => {
+            const target = split(el.textContent, "grapheme");
+            let frame = 0;
+            const delay = 10 + n * 12;
+            (function tick() {
+                frame++;
+                const done = Math.max(0, frame - delay) / 2;
+                el.textContent = target.map((ch, i) =>
+                    ch === " " || i < done ? ch : glyphs[(Math.random() * glyphs.length) | 0]
+                ).join("");
+                if (done < target.length) requestAnimationFrame(tick);
+            })();
+        });
+
+        // ---------- เตรียมคำในย่อหน้าแนะนำตัว ----------
+        const wordEls = [];
+        document.querySelectorAll(".words").forEach((p) => {
+            const nodes = [...p.childNodes];
+            p.textContent = "";
+            nodes.forEach((node) => {
+                const text = node.textContent.replace(/\s+/g, " ");
+                const holder = node.nodeType === 1 ? node.cloneNode(false) : p;
+                if (holder !== p) p.append(holder);
+                split(text, "word").forEach((w) => {
+                    if (!w.trim()) { holder.append(" "); return; }
+                    const s = document.createElement("span");
+                    s.className = "w";
+                    s.textContent = w;
+                    holder.append(s);
+                    wordEls.push(s);
+                });
+            });
+        });
+
+        // ---------- ความคืบหน้าของแต่ละช่วง ----------
+        const chapters = [...document.querySelectorAll(".chapter")].map((el) => ({
+            el, name: el.dataset.ch, h2: el.querySelector("h2")
+        }));
+        function chapterProgress(el) {
+            const r = el.getBoundingClientRect();
+            const total = el.offsetHeight - innerHeight;
+            return total > 0 ? clamp(-r.top / total) : 0;
+        }
+        function inView(el) {
+            const r = el.getBoundingClientRect();
+            return r.bottom > -50 && r.top < innerHeight + 50;
+        }
+
+        const rows = [...document.querySelectorAll(".row")];
+        const items = [...document.querySelectorAll(".interests li")];
+        const finaleLines = [...document.querySelectorAll(".finale-text p")];
+
+        // ---------- บัตรโฮโลแกรม: เอียงตามเมาส์แบบสปริง ----------
+        const holoCard = document.querySelector(".holo-card");
+        const tilt = { rx: 0, ry: 0, vx: 0, vy: 0 };
+        function updateHolo(p) {
+            // ช่วงแรกของ chapter บัตรพลิกจากแนวตั้งฉากเข้ามาหน้าตรง
+            const flip = 1 - clamp(p / 0.25);
+            holoCard.style.setProperty("--flip", (flip * flip).toFixed(3));
+            const r = holoCard.getBoundingClientRect();
+            const tx = mouse.active ? clamp((mouse.y - (r.top + r.height / 2)) / r.height, -1, 1) * -12 : 0;
+            const ty = mouse.active ? clamp((mouse.x - (r.left + r.width / 2)) / r.width, -1, 1) * 16 : 0;
+            // สปริง: ความเร่งตามระยะห่างจากเป้า + แรงหน่วง
+            tilt.vx = (tilt.vx + (tx - tilt.rx) * 0.08) * 0.82;
+            tilt.vy = (tilt.vy + (ty - tilt.ry) * 0.08) * 0.82;
+            tilt.rx += tilt.vx; tilt.ry += tilt.vy;
+            holoCard.style.setProperty("--rx", tilt.rx.toFixed(2));
+            holoCard.style.setProperty("--ry", tilt.ry.toFixed(2));
+            holoCard.style.setProperty("--gx", `${clamp((mouse.x - r.left) / r.width) * 100}%`);
+            holoCard.style.setProperty("--gy", `${clamp((mouse.y - r.top) / r.height) * 100}%`);
+        }
+
+        // ---------- ทรงกลมแท็ก (จัดตำแหน่งแบบ Fibonacci sphere) ----------
+        const sphereEl = document.getElementById("sphere");
+        const tags = ["HTML", "CSS", "JavaScript", "three.js", "WebGL", "GLSL", "เว็บ", "เกมบนเบราว์เซอร์",
+            "อนิเมชัน", "กราฟิก 3D", "อัตโนมัติ", "เขียนโค้ด", "SCS211", "Jay"];
+        const tagEls = tags.map((t, i) => {
+            const el = document.createElement("span");
+            el.textContent = t;
+            sphereEl.append(el);
+            // จุดกระจายเท่า ๆ กันบนผิวทรงกลม
+            const y = 1 - (i + 0.5) * (2 / tags.length);
+            const rr = Math.sqrt(1 - y * y);
+            const th = i * Math.PI * (3 - Math.sqrt(5));
+            return { el, x: Math.cos(th) * rr, y, z: Math.sin(th) * rr };
+        });
+        const spin = { ax: 0.3, ay: 0, vx: 0, vy: 0.004, drag: false, lx: 0, ly: 0 };
+        sphereEl.addEventListener("pointerdown", (e) => {
+            spin.drag = true; spin.lx = e.clientX; spin.ly = e.clientY;
+            sphereEl.setPointerCapture(e.pointerId);
+        });
+        sphereEl.addEventListener("pointermove", (e) => {
+            if (!spin.drag) return;
+            spin.vy = (e.clientX - spin.lx) * 0.006;
+            spin.vx = (e.clientY - spin.ly) * -0.006;
+            spin.lx = e.clientX; spin.ly = e.clientY;
+        });
+        const endDrag = () => (spin.drag = false);
+        sphereEl.addEventListener("pointerup", endDrag);
+        sphereEl.addEventListener("pointercancel", endDrag);
+        function updateSphere(v) {
+            if (!spin.drag) {
+                // ปล่อยมือแล้วหมุนต่อด้วยแรงเฉื่อย ค่อย ๆ กลับไปหมุนช้า ๆ เอง
+                spin.vy += (0.004 - spin.vy) * 0.02;
+                spin.vx *= 0.96;
+            }
+            spin.ay += spin.vy; spin.ax += spin.vx;
+            const R = sphereEl.clientWidth * 0.4 * v;
+            const cy = Math.cos(spin.ay), sy = Math.sin(spin.ay), cx = Math.cos(spin.ax), sx = Math.sin(spin.ax);
+            for (const t of tagEls) {
+                // หมุนรอบแกน Y แล้วรอบแกน X
+                const x1 = t.x * cy + t.z * sy, z1 = -t.x * sy + t.z * cy;
+                const y2 = t.y * cx - z1 * sx, z2 = t.y * sx + z1 * cx;
+                const depth = (z2 + 1) / 2; // 0 = หลังสุด, 1 = หน้าสุด
+                t.el.style.transform = `translate(-50%,-50%) translate3d(${(x1 * R).toFixed(1)}px,${(y2 * R).toFixed(1)}px,0) scale(${(0.6 + depth * 0.55).toFixed(3)})`;
+                t.el.style.opacity = ((0.2 + depth * 0.8) * v).toFixed(3);
+                t.el.style.zIndex = Math.round(depth * 100);
+            }
+        }
+        const heroBody = document.getElementById("heroBody");
+        const constellation = document.querySelector(".constellation");
+        const distEl = document.getElementById("dist");
+        const planetNames = ["โลก", "ดาวอังคาร", "ดาวพฤหัสบดี", "ดาวเสาร์", "ดาวเนปจูน"];
+        const decodedEl = document.getElementById("decoded");
+        const whereEl = document.getElementById("where");
+        const chapterNames = { hero: "เริ่มต้น", id: "รหัสนักศึกษา", about: "แนะนำตัว", info: "ข้อมูลทั่วไป", interests: "สิ่งที่สนใจ", finale: "ปลายทาง" };
+
+        // ไล่เผยทีละชิ้นตามความคืบหน้า q (0..1)
+        function stagger(list, q, spread) {
+            list.forEach((el, i) => el.style.setProperty("--v", clamp(q * (list.length + spread) - i).toFixed(3)));
+        }
+
+        // ---------- รหัสนักศึกษาแบบ dot-matrix ----------
+        const idText = "69122420016";
+        const mcv = document.getElementById("idmatrix");
+        const mg = mcv.getContext("2d");
+        let mcells = [], mcell = 8, mw = 0, mh = 0;
+        function buildMatrix() {
+            const dpr = Math.min(devicePixelRatio, 2);
+            mw = mcv.clientWidth; mh = mcv.clientHeight;
+            if (mw < 2 || mh < 2) { mcells = []; return; } // ยังไม่มีขนาด ข้ามไปก่อน
+            mcv.width = mw * dpr; mcv.height = mh * dpr;
+            mg.setTransform(dpr, 0, 0, dpr, 0, 0);
+            // วาดตัวเลขลงผืนผ้าใบลับ แล้วสุ่มตัวอย่างเป็นตาราง
+            const off = document.createElement("canvas");
+            off.width = mw; off.height = mh;
+            const og = off.getContext("2d");
+            const fs = Math.min(mh * 0.8, mw / (idText.length * 0.62));
+            og.font = `700 ${fs}px "JetBrains Mono", monospace`;
+            og.textAlign = "center"; og.textBaseline = "middle";
+            og.fillText(idText, mw / 2, mh / 2);
+            const data = og.getImageData(0, 0, mw, mh).data;
+            mcell = Math.max(5, Math.round(fs / 11));
+            mcells = [];
+            for (let y = mcell / 2; y < mh; y += mcell) {
+                for (let x = mcell / 2; x < mw; x += mcell) {
+                    const on = data[((y | 0) * mw + (x | 0)) * 4 + 3] > 128;
+                    if (on) {
+                        mcells.push({ x, y, th: (x / mw) * 0.75 + Math.random() * 0.2, ox: 0, oy: 0 });
+                    } else if (Math.random() < 0.05) {
+                        mcells.push({ x, y, th: 2, ox: 0, oy: 0 }); // จุดพื้นหลังจาง ๆ
+                    }
+                }
+            }
+        }
+        function drawMatrix(q) {
+            mg.clearRect(0, 0, mw, mh);
+            const rect = mcv.getBoundingClientRect();
+            const mx = mouse.x - rect.left, my = mouse.y - rect.top;
+            const R = 90;
+            mg.font = `${mcell * 1.1}px "JetBrains Mono", monospace`;
+            mg.textAlign = "center"; mg.textBaseline = "middle";
+            for (const c of mcells) {
+                // เมาส์ดันจุดออกไปเหมือนแรงผลัก แล้วค่อย ๆ คืนที่
+                let tx = 0, ty = 0, glow = 0;
+                if (mouse.active) {
+                    const dx = c.x - mx, dy = c.y - my, d = Math.hypot(dx, dy);
+                    if (d < R && d > 0.01) {
+                        const f = (1 - d / R);
+                        tx = (dx / d) * f * 18; ty = (dy / d) * f * 18; glow = f;
+                    }
+                }
+                c.ox += (tx - c.ox) * 0.15; c.oy += (ty - c.oy) * 0.15;
+                const x = c.x + c.ox, y = c.y + c.oy;
+                if (c.th > 1) {
+                    mg.fillStyle = `rgba(143,153,191,${0.15 + glow * 0.5})`;
+                    mg.fillRect(x - 1, y - 1, 2, 2);
+                } else if (q >= c.th) {
+                    const s = mcell * 0.72;
+                    mg.fillStyle = glow > 0.05 ? `rgba(230,236,255,${0.8 + glow * 0.2})` : "rgba(127,214,255,0.95)";
+                    mg.fillRect(x - s / 2, y - s / 2, s, s);
+                } else if (q >= c.th - 0.08) {
+                    mg.fillStyle = "rgba(195,155,255,0.9)";
+                    mg.fillText(glyphs[(Math.random() * glyphs.length) | 0], x, y);
+                } else {
+                    mg.fillStyle = `rgba(143,153,191,${0.18 + glow * 0.5})`;
+                    mg.fillRect(x - 1, y - 1, 2, 2);
+                }
+            }
+        }
+
+        // ---------- ชั้น ASCII พื้นหลัง + ไฟฉายตามเมาส์ ----------
+        const acv = document.getElementById("ascii");
+        const ag = acv.getContext("2d");
+        const CELL = 18;
+        const starChars = [".", ".", "·", "+", "*"];
+        let cols, rows2, acells;
+        function buildAscii() {
+            const dpr = Math.min(devicePixelRatio, 2);
+            acv.width = innerWidth * dpr; acv.height = innerHeight * dpr;
+            ag.setTransform(dpr, 0, 0, dpr, 0, 0);
+            cols = Math.ceil(innerWidth / CELL); rows2 = Math.ceil(innerHeight / CELL);
+            acells = [];
+            for (let i = 0; i < cols * rows2; i++) {
+                acells.push(Math.random() < 0.1
+                    ? { c: starChars[(Math.random() * starChars.length) | 0], a: 0.08 + Math.random() * 0.25, p: Math.random() * 6.28 }
+                    : null);
+            }
+        }
+        function drawAscii(s) {
+            ag.clearRect(0, 0, innerWidth, innerHeight);
+            ag.font = "11px 'JetBrains Mono', monospace";
+            ag.textAlign = "center"; ag.textBaseline = "middle";
+            const R = 140;
+            for (let y = 0; y < rows2; y++) {
+                for (let x = 0; x < cols; x++) {
+                    const cell = acells[y * cols + x];
+                    if (!cell) continue;
+                    const px = x * CELL + CELL / 2, py = y * CELL + CELL / 2;
+                    let lit = 0;
+                    if (mouse.active) lit = Math.max(0, 1 - Math.hypot(px - mouse.x, py - mouse.y) / R);
+                    const tw = 0.5 + 0.5 * Math.sin(s * 2 + cell.p);
+                    const alpha = cell.a * (0.5 + 0.5 * tw) + lit * 0.7;
+                    ag.fillStyle = lit > 0.2 ? `rgba(127,214,255,${alpha})` : `rgba(195,175,255,${alpha})`;
+                    // ใกล้เมาส์มาก ๆ ตัวอักษรจะสุ่มเปลี่ยน เหมือนสัญญาณถูกรบกวน
+                    const ch = lit > 0.55 && Math.random() < 0.3 ? glyphs[(Math.random() * glyphs.length) | 0] : cell.c;
+                    ag.fillText(ch, px, py);
+                }
+            }
+            drawComet();
+        }
+
+        // ---------- หางดาวหางตามเมาส์ (แต่ละจุดตามจุดก่อนหน้าแบบหน่วง = lerp) ----------
+        const comet = Array.from({ length: 16 }, () => ({ x: mouse.x, y: mouse.y }));
+        let usingMouse = false;
+        addEventListener("pointermove", (e) => (usingMouse = e.pointerType === "mouse"));
+        function drawComet() {
+            if (!usingMouse || !mouse.active) return;
+            comet[0].x += (mouse.x - comet[0].x) * 0.45;
+            comet[0].y += (mouse.y - comet[0].y) * 0.45;
+            for (let i = 1; i < comet.length; i++) {
+                comet[i].x += (comet[i - 1].x - comet[i].x) * 0.38;
+                comet[i].y += (comet[i - 1].y - comet[i].y) * 0.38;
+            }
+            ag.globalCompositeOperation = "lighter";
+            for (let i = comet.length - 1; i >= 0; i--) {
+                const f = 1 - i / comet.length;
+                ag.beginPath();
+                ag.arc(comet[i].x, comet[i].y, 1 + f * 4, 0, Math.PI * 2);
+                // หัวสีฟ้า ไล่ไปหางสีม่วง
+                ag.fillStyle = `rgba(${Math.round(195 - f * 68)},${Math.round(155 + f * 59)},255,${f * 0.7})`;
+                ag.fill();
+            }
+            ag.globalCompositeOperation = "source-over";
+        }
+
+        function onResize() {
+            try { buildAscii(); buildMatrix(); } catch (e) { console.warn(e); }
+        }
+        addEventListener("resize", onResize);
+        // รอฟอนต์โหลดก่อนสร้างตัวเลข dot-matrix ให้รูปตัวอักษรถูกต้อง
+        (document.fonts ? document.fonts.ready : Promise.resolve()).then(onResize);
+        onResize();
+
+        // ---------- ฉากอวกาศ 3D ----------
+        let space = null;
+        try { space = setupSpace(); } catch (e) { console.warn(e); }
+        let bhFade = 0, blackhole = null;
+        try { blackhole = setupBlackHole(); } catch (e) { console.warn(e); }
+
+        // ---------- Smooth scroll (ถ้าโหลด Lenis ไม่ได้ ก็เลื่อนแบบปกติ) ----------
+        let lenis = null;
+        try { if (window.Lenis) lenis = new Lenis({ lerp: 0.09, wheelMultiplier: 0.9 }); } catch (e) { console.warn(e); }
+
+        // ---------- ลูปหลัก ----------
+        function frame(t) {
+            requestAnimationFrame(frame); // จองเฟรมถัดไปก่อน ถ้าเฟรมนี้พังลูปก็ยังเดินต่อ
+            if (lenis) lenis.raf(t);
+            const s = t * 0.001;
+            const maxScroll = document.documentElement.scrollHeight - innerHeight;
+            const gp = maxScroll > 0 ? clamp(scrollY / maxScroll) : 0;
+            document.documentElement.style.setProperty("--gp", gp.toFixed(4));
+            // f = ลำดับช่วงที่ถูกตรึงอยู่ + ความคืบหน้าในช่วงนั้น ใช้พากล้องบินจากดาวดวงหนึ่งไปอีกดวง
+            let f = 0;
+            chapters.forEach((ch, i) => {
+                if (ch.el.getBoundingClientRect().top <= 0) f = i + chapterProgress(ch.el);
+            });
+            const near = f >= planetNames.length ? "หลุมดำ" : planetNames[clamp(Math.floor(f), 0, planetNames.length - 1)];
+            f = Math.min(f, planetNames.length - 0.5); // กล้องหยุดที่ดาวเนปจูน แล้วหลุมดำค่อย ๆ ปรากฏแทน
+            bhFade = 0;
+            if (distEl.textContent !== near) distEl.textContent = near;
+
+            // บอกว่าตอนนี้อยู่ช่วงไหนของหน้า
+            const mid = innerHeight / 2;
+            chapters.forEach((ch, i) => {
+                const r = ch.el.getBoundingClientRect();
+                if (r.top <= mid && r.bottom > mid && whereEl.dataset.i !== String(i)) {
+                    whereEl.dataset.i = i;
+                    whereEl.textContent = `${i + 1} / ${chapters.length} · ${chapterNames[ch.name]}`;
+                }
+            });
+
+            for (const ch of chapters) {
+                if (!inView(ch.el)) continue;
+                const p = chapterProgress(ch.el);
+                if (ch.h2) ch.h2.style.setProperty("--h", clamp(p / 0.15).toFixed(3));
+
+                if (ch.name === "hero") {
+                    heroBody.parentElement.parentElement.style.setProperty("--p", p.toFixed(4));
+                    heroBody.style.setProperty("--p", p.toFixed(4));
+                    // ชื่อเอียงตามเมาส์แบบ 3D
+                    heroBody.style.transform = `rotateY(${mouse.nx * 16}deg) rotateX(${-mouse.ny * 12}deg)`;
+                    // ไฟฉาย: ส่งตำแหน่งเมาส์ (เทียบกับกลุ่มดาว) ให้ CSS mask
+                    const cr = constellation.getBoundingClientRect();
+                    constellation.style.setProperty("--mx", mouse.active ? `${(mouse.x - cr.left)}px` : "-999px");
+                    constellation.style.setProperty("--my", mouse.active ? `${(mouse.y - cr.top)}px` : "-999px");
+                } else if (ch.name === "id") {
+                    const q = clamp((p - 0.12) / 0.7);
+                    drawMatrix(q);
+                    decodedEl.textContent = Math.min(11, Math.floor(q * 11.5));
+                } else if (ch.name === "about") {
+                    stagger(wordEls, clamp((p - 0.1) / 0.7), 3);
+                } else if (ch.name === "info") {
+                    updateHolo(p);
+                    stagger(rows, clamp((p - 0.25) / 0.5), 1);
+                } else if (ch.name === "interests") {
+                    stagger(items, clamp((p - 0.15) / 0.6), 1);
+                    updateSphere(clamp((p - 0.05) / 0.35));
+                } else if (ch.name === "finale") {
+                    bhFade = clamp(p / 0.4);
+                    stagger(finaleLines, clamp((p - 0.35) / 0.4), 1);
+                }
+            }
+
+            drawAscii(s);
+            if (space && bhFade < 0.99) space(s, f); // หลุมดำบังเต็มจอแล้ว ไม่ต้องวาดฉากดาวเคราะห์
+            if (blackhole) blackhole(s, bhFade);
+        }
+        requestAnimationFrame(frame);
+
+        // ---------- หลุมดำ: WebGL ล้วน ยิงแสงจากกล้องทีละพิกเซลแล้วให้แรงโน้มถ่วงดัดทางเดินของแสง ----------
+        function setupBlackHole() {
+            const cv = document.getElementById("blackhole");
+            const gl = cv.getContext("webgl", { antialias: false, alpha: false });
+            if (!gl) return null;
+            const vs = `attribute vec2 a; void main(){ gl_Position = vec4(a, 0.0, 1.0); }`;
+            const fs = `
+precision highp float;
+uniform vec2 uRes; uniform float uTime; uniform vec2 uMouse;
+float hash(vec3 p){ p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+float noise(vec2 p){
+    vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+    float a = hash(vec3(i, 1.0)), b = hash(vec3(i + vec2(1.0, 0.0), 1.0));
+    float c = hash(vec3(i + vec2(0.0, 1.0), 1.0)), d = hash(vec3(i + vec2(1.0, 1.0), 1.0));
+    return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+}
+void main(){
+    vec2 uv = (gl_FragCoord.xy - 0.5 * uRes) / uRes.y;
+    uv.y -= 0.12; // ยกหลุมดำขึ้นด้านบน เว้นที่ให้ข้อความด้านล่าง
+    // กล้องโคจรรอบหลุมดำช้า ๆ และเอียงตามเมาส์
+    float yaw = uTime * 0.04 + uMouse.x * 0.6;
+    float pitch = 0.16 + uMouse.y * 0.18;
+    vec3 ro = vec3(sin(yaw) * cos(pitch), sin(pitch), cos(yaw) * cos(pitch)) * 24.0;
+    vec3 fw = normalize(-ro), rt = normalize(cross(vec3(0.0, 1.0, 0.0), fw)), up = cross(fw, rt);
+    vec3 rd = normalize(fw * 1.5 + uv.x * rt + uv.y * up);
+    vec3 p = ro, col = vec3(0.0);
+    float alpha = 0.0;
+    for (int i = 0; i < 160; i++) {
+        float r = length(p);
+        if (r < 1.0) { alpha = 1.0; break; }             // ตกขอบฟ้าเหตุการณ์: มืดสนิท
+        float dt = 0.04 + r * 0.05;
+        vec3 prev = p;
+        rd = normalize(rd - p / (r * r * r) * 1.5 * dt);  // แรงโน้มถ่วงดัดแสงเข้าหาศูนย์กลาง
+        p += rd * dt;
+        if (prev.y * p.y < 0.0) {                         // แสงตัดผ่านระนาบจานสะสมมวล
+            vec3 h = mix(prev, p, prev.y / (prev.y - p.y));
+            float hr = length(h.xz);
+            if (hr > 1.7 && hr < 7.0) {
+                float t = (hr - 1.7) / 5.3;
+                float ang = atan(h.z, h.x);
+                float swirl = noise(vec2(hr * 3.2, ang * 3.0 - uTime * 2.2 / hr));
+                float dens = (1.0 - t) * (0.45 + 0.9 * swirl) * smoothstep(0.0, 0.06, t);
+                vec3 vel = normalize(vec3(-h.z, 0.0, h.x));
+                float dop = 1.0 + 0.7 * dot(vel, -rd);    // ฝั่งที่วิ่งเข้าหาเราสว่างกว่า (Doppler)
+                vec3 hot = mix(vec3(1.0, 0.42, 0.14), vec3(1.0, 0.93, 0.82), pow(1.0 - t, 2.0));
+                hot *= dop * dop;
+                hot = mix(hot, hot * vec3(0.75, 0.85, 1.35), clamp(dop - 1.0, 0.0, 1.0));
+                float a = clamp(dens * 1.3, 0.0, 1.0) * (1.0 - alpha);
+                col += hot * a * 1.5;
+                alpha += a * 0.8;
+                if (alpha > 0.97) break;
+            }
+        }
+        if (r > 40.0) break;
+    }
+    // ดาวฉากหลัง ใช้ทิศแสงหลังโค้งแล้ว จึงเห็นดาวบิดเบี้ยวรอบหลุมดำ (gravitational lensing)
+    float star = step(0.9975, hash(floor(rd * 260.0)));
+    col += (1.0 - alpha) * vec3(star) * 0.9;
+    col = col / (1.0 + col * 0.35);                       // กดแสงจ้าไม่ให้ขาวโพลน
+    gl_FragColor = vec4(col, 1.0);
+}`;
+            function shader(type, src) {
+                const s = gl.createShader(type);
+                gl.shaderSource(s, src); gl.compileShader(s);
+                if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+                return s;
+            }
+            const prog = gl.createProgram();
+            gl.attachShader(prog, shader(gl.VERTEX_SHADER, vs));
+            gl.attachShader(prog, shader(gl.FRAGMENT_SHADER, fs));
+            gl.linkProgram(prog);
+            if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+            gl.useProgram(prog);
+            gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+            const loc = gl.getAttribLocation(prog, "a");
+            gl.enableVertexAttribArray(loc);
+            gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+            const uRes = gl.getUniformLocation(prog, "uRes"), uTime = gl.getUniformLocation(prog, "uTime"), uMouse = gl.getUniformLocation(prog, "uMouse");
+
+            // งานหนัก: วาดที่ความละเอียดครึ่งหนึ่ง แล้วให้เบราว์เซอร์ขยาย
+            function resize() {
+                const scale = 0.5 * Math.min(devicePixelRatio, 2);
+                cv.width = Math.max(2, Math.round(innerWidth * scale));
+                cv.height = Math.max(2, Math.round(innerHeight * scale));
+                gl.viewport(0, 0, cv.width, cv.height);
+            }
+            addEventListener("resize", resize);
+            resize();
+
+            let mx = 0, my = 0;
+            return function render(s, fade) {
+                cv.style.opacity = fade.toFixed(3);
+                if (fade < 0.01) return; // ยังไม่ถึงช่วงท้าย ไม่ต้องคำนวณ
+                mx += (mouse.nx - mx) * 0.05; my += (-mouse.ny - my) * 0.05;
+                gl.uniform2f(uRes, cv.width, cv.height);
+                gl.uniform1f(uTime, s);
+                gl.uniform2f(uMouse, mx, my);
+                gl.drawArrays(gl.TRIANGLES, 0, 3);
+            };
+        }
+
+        function setupSpace() {
+            if (!window.THREE) return null; // โหลด three.js ไม่ได้ ก็ยังอ่านเนื้อหาได้ครบ
+            const canvas = document.getElementById("scene");
+            const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+            renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 600);
+
+            const SPACING = 30;       // ระยะห่างระหว่างดาวแต่ละดวงบนเส้นทาง
+            const AHEAD = 18;         // ดาวอยู่หน้ากล้องเท่าไรตอนกลางช่วง
+
+            function tex(w, h, draw) {
+                const c = document.createElement("canvas");
+                c.width = w; c.height = h;
+                draw(c.getContext("2d"), w, h);
+                return new THREE.CanvasTexture(c);
+            }
+            // ลายแถบแนวนอน ใช้กับดาวแก๊ส
+            function bands(colors, wobble) {
+                return tex(512, 256, (g, w, h) => {
+                    for (let y = 0; y < h; y += 2) {
+                        const t = y / h + Math.sin(y * 0.09) * wobble;
+                        g.fillStyle = colors[clamp(Math.floor(t * colors.length), 0, colors.length - 1)];
+                        g.fillRect(0, y, w, 2);
+                    }
+                    g.globalAlpha = 0.12;
+                    for (let k = 0; k < 50; k++) {
+                        g.fillStyle = k % 2 ? "#fff" : "#000";
+                        g.fillRect(0, Math.random() * h, w, Math.random() * 3);
+                    }
+                });
+            }
+            // ผิวหิน: สีพื้น + จุดด่างสุ่ม
+            function rocky(base, spots, count) {
+                return tex(512, 256, (g, w, h) => {
+                    g.fillStyle = base; g.fillRect(0, 0, w, h);
+                    for (let k = 0; k < count; k++) {
+                        g.globalAlpha = 0.25 + Math.random() * 0.4;
+                        g.fillStyle = spots[k % spots.length];
+                        g.beginPath();
+                        g.ellipse(Math.random() * w, Math.random() * h, 4 + Math.random() * 30, 3 + Math.random() * 14, 0, 0, 6.3);
+                        g.fill();
+                    }
+                });
+            }
+
+            // ---- ดวงอาทิตย์: แหล่งแสงของทุกดวง (ตำแหน่งจริงคำนวณทุกเฟรมใน render) ----
+            const sunPos = new THREE.Vector3(-90, 35, -260);
+            const sun = new THREE.Mesh(new THREE.SphereGeometry(14, 48, 48), new THREE.MeshBasicMaterial({ color: 0xffd98a }));
+            sun.position.copy(sunPos);
+            scene.add(sun);
+            const glowTex = tex(256, 256, (g, w) => {
+                const grd = g.createRadialGradient(w / 2, w / 2, 0, w / 2, w / 2, w / 2);
+                grd.addColorStop(0, "rgba(255,220,150,0.9)");
+                grd.addColorStop(0.3, "rgba(255,170,80,0.35)");
+                grd.addColorStop(1, "rgba(0,0,0,0)");
+                g.fillStyle = grd; g.fillRect(0, 0, w, w);
+            });
+            const sunGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
+            sunGlow.position.copy(sunPos);
+            sunGlow.scale.set(110, 110, 1);
+            scene.add(sunGlow);
+            scene.add(new THREE.AmbientLight(0x30406a, 0.55));
+            const sunLight = new THREE.PointLight(0xfff1dd, 1.6);
+            sunLight.position.copy(sunPos);
+            scene.add(sunLight);
+
+            // ---- ดาวเคราะห์ประจำแต่ละช่วงของหน้า ----
+            const stops = [
+                { name: "โลก", r: 2.3, map: rocky("#1d5fa8", ["#3f8f4a", "#7a6a3a", "#2f7d3c", "#e9eef7"], 70), y: 0.5, spin: 0.2, clouds: true, moon: true },
+                { name: "ดาวอังคาร", r: 1.7, map: rocky("#b4532a", ["#7d3418", "#d98a5a", "#5e2a14"], 90), y: -1, spin: 0.18 },
+                { name: "ดาวพฤหัสบดี", r: 3.4, map: bands(["#c9a37a", "#e8d2b0", "#a8784f", "#f0e2c8", "#b8865c", "#e3c9a2", "#9e6f48"], 0.02), y: 0.8, spin: 0.3, spot: true },
+                { name: "ดาวเสาร์", r: 2.8, map: bands(["#d9c08a", "#efe0b5", "#c4a56c", "#e8d39f", "#b8975e"], 0.015), y: -0.6, spin: 0.25, ring: true },
+                { name: "ดาวเนปจูน", r: 2.4, map: bands(["#2b4fb8", "#3a68d6", "#2445a0", "#4a7be0", "#1f3c92"], 0.03), y: 0.4, spin: 0.22 }
+            ];
+            const planets = stops.map((st, i) => {
+                const group = new THREE.Group();
+                const mesh = new THREE.Mesh(new THREE.SphereGeometry(st.r, 64, 64),
+                    new THREE.MeshStandardMaterial({ map: st.map, roughness: 0.95 }));
+                group.add(mesh);
+                if (st.spot) {
+                    // จุดแดงใหญ่ของดาวพฤหัส วาดเพิ่มลงบน texture
+                    const img = st.map.image, g = img.getContext("2d");
+                    g.globalAlpha = 0.85; g.fillStyle = "#b5492e";
+                    g.beginPath(); g.ellipse(330, 165, 26, 13, 0, 0, 6.3); g.fill();
+                    st.map.needsUpdate = true;
+                }
+                if (st.clouds) {
+                    const clouds = new THREE.Mesh(new THREE.SphereGeometry(st.r * 1.03, 48, 48),
+                        new THREE.MeshStandardMaterial({
+                            map: tex(512, 256, (g, w, h) => {
+                                for (let k = 0; k < 60; k++) {
+                                    g.globalAlpha = 0.25 + Math.random() * 0.35; g.fillStyle = "#fff";
+                                    g.beginPath(); g.ellipse(Math.random() * w, Math.random() * h, 10 + Math.random() * 40, 2 + Math.random() * 6, 0, 0, 6.3); g.fill();
+                                }
+                            }), transparent: true, depthWrite: false
+                        }));
+                    group.add(clouds);
+                    st.cloudMesh = clouds;
+                }
+                // บรรยากาศเรือง ๆ
+                group.add(new THREE.Mesh(new THREE.SphereGeometry(st.r * 1.1, 48, 48),
+                    new THREE.MeshBasicMaterial({ color: 0x7fd6ff, transparent: true, opacity: 0.06, side: THREE.BackSide })));
+                if (st.ring) {
+                    const ringTex = tex(512, 512, (g, s) => {
+                        const grd = g.createRadialGradient(s / 2, s / 2, s * 0.3, s / 2, s / 2, s / 2);
+                        grd.addColorStop(0, "rgba(0,0,0,0)");
+                        grd.addColorStop(0.25, "rgba(230,210,160,0.6)");
+                        grd.addColorStop(0.45, "rgba(180,160,120,0.25)");
+                        grd.addColorStop(0.6, "rgba(240,225,185,0.65)");
+                        grd.addColorStop(0.85, "rgba(200,180,140,0.3)");
+                        grd.addColorStop(1, "rgba(0,0,0,0)");
+                        g.fillStyle = grd; g.fillRect(0, 0, s, s);
+                    });
+                    const ring = new THREE.Mesh(new THREE.RingGeometry(st.r * 1.25, st.r * 2.2, 128),
+                        new THREE.MeshBasicMaterial({ map: ringTex, transparent: true, side: THREE.DoubleSide, depthWrite: false }));
+                    ring.rotation.x = Math.PI / 2.3;
+                    group.add(ring);
+                }
+                if (st.moon) {
+                    st.moonMesh = new THREE.Mesh(new THREE.SphereGeometry(0.45, 32, 32),
+                        new THREE.MeshStandardMaterial({ color: 0xcfd6e6, roughness: 1 }));
+                    group.add(st.moonMesh);
+                }
+                group.rotation.z = 0.2 + i * 0.08;
+                scene.add(group);
+                return { st, group, mesh, z: -(i + 0.5) * SPACING - AHEAD };
+            });
+
+            // ดาวเคราะห์ดวงเล็กประดับฉากไกล ๆ (พุธ ศุกร์ ยูเรนัส)
+            [["#9a948c", 0.9, -40, 18, -70], ["#e8c98a", 1.4, -55, -14, -110], ["#8fd6dc", 2, 60, 22, -175]]
+                .forEach(([color, r, x, y, z]) => {
+                    const m = new THREE.Mesh(new THREE.SphereGeometry(r, 32, 32), new THREE.MeshStandardMaterial({ color, roughness: 1 }));
+                    m.position.set(x, y, z);
+                    scene.add(m);
+                });
+
+            // จุดสุ่มรอบเส้นทาง แต่เว้นท่อรอบกล้องไว้ ไม่งั้นจุดใกล้ ๆ จะกลายเป็นสี่เหลี่ยมใหญ่
+            function scatter(count, zFrom, zTo, spread, tube) {
+                const pos = new Float32Array(count * 3);
+                for (let i = 0; i < count; i++) {
+                    let x, y;
+                    do { x = (Math.random() - 0.5) * spread; y = (Math.random() - 0.5) * spread; } while (Math.hypot(x, y) < tube);
+                    pos.set([x, y, zFrom + Math.random() * (zTo - zFrom)], i * 3);
+                }
+                const geo = new THREE.BufferGeometry();
+                geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+                return geo;
+            }
+            // ดาวฉากหลัง
+            const starGeo = scatter(2600, 20, -300, 160, 8);
+            const tint = [[1, 1, 1], [0.7, 0.85, 1], [1, 0.9, 0.75], [0.85, 0.75, 1]];
+            const col = new Float32Array(2600 * 3);
+            for (let i = 0; i < 2600; i++) col.set(tint[i % 4], i * 3);
+            starGeo.setAttribute("color", new THREE.BufferAttribute(col, 3));
+            scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ size: 0.12, vertexColors: true, transparent: true, opacity: 0.9 })));
+            // แถบดาวเคราะห์น้อย ระหว่างดาวอังคารกับดาวพฤหัส กล้องบินฝ่ากลาง
+            const beltZ = (planets[1].z + planets[2].z) / 2 + AHEAD;
+            const belt = new THREE.Points(scatter(900, beltZ + 10, beltZ - 10, 40, 4.5),
+                new THREE.PointsMaterial({ size: 0.09, color: 0xb9a991, transparent: true, opacity: 0.9 }));
+            scene.add(belt);
+
+            // เนบิวลาไกล ๆ
+            [["rgba(140,70,255,0.35)", -40, 20, -200, 120], ["rgba(40,170,255,0.25)", 50, -25, -230, 130]]
+                .forEach(([color, x, y, z, size]) => {
+                    const sp = new THREE.Sprite(new THREE.SpriteMaterial({
+                        map: tex(256, 256, (g, s) => {
+                            const grd = g.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
+                            grd.addColorStop(0, color); grd.addColorStop(1, "rgba(0,0,0,0)");
+                            g.fillStyle = grd; g.fillRect(0, 0, s, s);
+                        }), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false
+                    }));
+                    sp.position.set(x, y, z); sp.scale.set(size, size, 1);
+                    scene.add(sp);
+                });
+
+            // ดาวตก
+            const shootGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]);
+            const shoot = new THREE.Line(shootGeo, new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0 }));
+            scene.add(shoot);
+            let shootT = -1;
+            const from = new THREE.Vector3(), dir = new THREE.Vector3();
+
+            let narrow = false;
+            function resize() {
+                renderer.setSize(innerWidth, innerHeight, false);
+                camera.aspect = innerWidth / innerHeight;
+                camera.updateProjectionMatrix();
+                narrow = innerWidth < 700;
+            }
+            addEventListener("resize", resize);
+            resize();
+
+            let last = 0, camX = 0, camY = 0, camZ = 0;
+            // f = ลำดับช่วง + ความคืบหน้าในช่วงนั้น (เช่น 1.5 = กลางช่วงที่ 2)
+            return function render(s, f) {
+                const dt = Math.min(0.05, s - last); last = s;
+                // กล้องบินไปตามเส้นทางแบบหน่วงนิด ๆ ให้นุ่ม
+                camZ += (-f * SPACING - camZ) * 0.12;
+
+                planets.forEach(({ st, group, mesh, z }, i) => {
+                    // ดาวอยู่ขวาของตัวหนังสือบนจอกว้าง / อยู่ด้านบนบนมือถือ
+                    if (narrow) group.position.set(0, 1.5, z);
+                    else group.position.set(4.5, st.y, z);
+                    group.scale.setScalar(narrow ? 0.75 : 1);
+                    mesh.rotation.y = s * st.spin;
+                    if (st.cloudMesh) st.cloudMesh.rotation.y = s * st.spin * 1.3;
+                    if (st.moonMesh) st.moonMesh.position.set(Math.cos(s * 0.6) * 4.2, Math.sin(s * 0.6) * 0.8, Math.sin(s * 0.6) * 3);
+                });
+                belt.rotation.z = s * 0.02;
+
+                if (shootT < 0 && Math.random() < 0.004) {
+                    from.set(-10 + Math.random() * 20, 6 + Math.random() * 4, camZ - 18);
+                    dir.set(-1 - Math.random(), -0.6, 0).normalize();
+                    shootT = 0;
+                }
+                if (shootT >= 0) {
+                    shootT += dt;
+                    const head = from.clone().addScaledVector(dir, shootT * 18);
+                    shootGeo.setFromPoints([head.clone().addScaledVector(dir, -2.5), head]);
+                    shoot.material.opacity = Math.max(0, 1 - shootT);
+                    if (shootT > 1) shootT = -1;
+                }
+
+                // กล้องตามเมาส์แบบหน่วง
+                camX += (mouse.nx * 2.5 - camX) * 0.05;
+                camY += (-mouse.ny * 2.5 - camY) * 0.05;
+                camera.position.set(camX, camY, camZ);
+                // หันกล้องเฉียง: จอกว้างหันซ้าย / มือถือก้มลง
+                // ทำให้ดาวที่อยู่ไกลไปรวมกันที่ขอบขวา (หรือขอบบน) ไม่กองอยู่หลังตัวหนังสือกลางจอ
+                if (narrow) camera.lookAt(camX, camY - 20 * Math.tan(0.36), camZ - 20);
+                else camera.lookAt(camX - 20 * Math.tan(0.45), camY, camZ - 20);
+                camera.updateMatrixWorld();
+
+                // ดวงอาทิตย์ตรึงไว้มุมขวาบนของจอเสมอ (อยู่ไกล 400 หน่วยในทิศของกล้อง)
+                const hy = Math.tan(Math.PI / 6) * 400, hx = hy * camera.aspect;
+                sunPos.set(hx * 0.62, hy * 0.62, -400);
+                camera.localToWorld(sunPos);
+                sun.position.copy(sunPos);
+                sunGlow.position.copy(sunPos);
+                sunLight.position.copy(sunPos);
+                renderer.render(scene, camera);
+            };
+        }
+    })();
+    </script>
+</body>
+</html>
